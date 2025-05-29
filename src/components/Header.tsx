@@ -1,10 +1,14 @@
 
 import React, { useState } from 'react';
-import { ShoppingBag, Search, User, Menu, X, Heart } from 'lucide-react';
+import { ShoppingBag, Search, User, Menu, X, Heart, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const navItems = [
     { name: 'New Arrivals', href: '#' },
@@ -13,6 +17,14 @@ const Header = () => {
     { name: 'Accessories', href: '#' },
     { name: 'Sale', href: '#' },
   ];
+
+  const handleAuthClick = () => {
+    if (user) {
+      signOut();
+    } else {
+      navigate('/auth');
+    }
+  };
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -31,7 +43,7 @@ const Header = () => {
           </div>
 
           {/* Logo */}
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 cursor-pointer" onClick={() => navigate('/')}>
             <h1 className="text-2xl font-heading font-bold text-boutique-charcoal">
               Modern Boutique
             </h1>
@@ -55,18 +67,27 @@ const Header = () => {
             <Button variant="ghost" size="sm" className="text-boutique-charcoal hover:text-boutique-accent">
               <Search className="h-5 w-5" />
             </Button>
-            <Button variant="ghost" size="sm" className="text-boutique-charcoal hover:text-boutique-accent">
-              <Heart className="h-5 w-5" />
+            {user && (
+              <Button variant="ghost" size="sm" className="text-boutique-charcoal hover:text-boutique-accent">
+                <Heart className="h-5 w-5" />
+              </Button>
+            )}
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-boutique-charcoal hover:text-boutique-accent"
+              onClick={handleAuthClick}
+            >
+              {user ? <LogOut className="h-5 w-5" /> : <User className="h-5 w-5" />}
             </Button>
-            <Button variant="ghost" size="sm" className="text-boutique-charcoal hover:text-boutique-accent">
-              <User className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="sm" className="text-boutique-charcoal hover:text-boutique-accent relative">
-              <ShoppingBag className="h-5 w-5" />
-              <span className="absolute -top-2 -right-2 bg-boutique-accent text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                2
-              </span>
-            </Button>
+            {user && (
+              <Button variant="ghost" size="sm" className="text-boutique-charcoal hover:text-boutique-accent relative">
+                <ShoppingBag className="h-5 w-5" />
+                <span className="absolute -top-2 -right-2 bg-boutique-accent text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  0
+                </span>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -84,6 +105,17 @@ const Header = () => {
                   {item.name}
                 </a>
               ))}
+              {!user && (
+                <button
+                  onClick={() => {
+                    navigate('/auth');
+                    setIsMenuOpen(false);
+                  }}
+                  className="block w-full text-left px-3 py-2 text-boutique-charcoal hover:text-boutique-accent transition-colors duration-200 font-body"
+                >
+                  Sign In
+                </button>
+              )}
             </div>
           </div>
         )}

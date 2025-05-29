@@ -3,39 +3,43 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Heart, ShoppingBag } from 'lucide-react';
+import { useProducts } from '@/hooks/useProducts';
 
 const FeaturedProducts = () => {
-  const products = [
-    {
-      id: 1,
-      name: "Cashmere Wool Blend Coat",
-      price: 299,
-      originalPrice: 399,
-      image: "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-      tag: "Sale"
-    },
-    {
-      id: 2,
-      name: "Minimalist Silk Blouse",
-      price: 159,
-      image: "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-      tag: "New"
-    },
-    {
-      id: 3,
-      name: "Tailored Wide-Leg Trousers",
-      price: 189,
-      image: "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-      tag: "Trending"
-    },
-    {
-      id: 4,
-      name: "Organic Cotton Dress",
-      price: 129,
-      image: "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80",
-      tag: "Sustainable"
-    }
-  ];
+  const { featuredProducts, loading, error } = useProducts();
+
+  if (loading) {
+    return (
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-heading font-medium text-boutique-charcoal mb-4">
+              Featured Products
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="bg-gray-200 h-80 rounded-lg mb-4"></div>
+                <div className="bg-gray-200 h-4 rounded mb-2"></div>
+                <div className="bg-gray-200 h-4 rounded w-1/2"></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <p className="text-red-600">Error loading products: {error}</p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="py-16 bg-white">
@@ -50,24 +54,19 @@ const FeaturedProducts = () => {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {products.map((product) => (
+          {featuredProducts.map((product) => (
             <Card key={product.id} className="group border-0 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden">
               <div className="relative overflow-hidden">
                 <img
-                  src={product.image}
+                  src={product.product_variants?.[0]?.image_urls?.[0] || "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"}
                   alt={product.name}
                   className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-300"
                 />
                 
                 {/* Product Tag */}
                 <div className="absolute top-3 left-3">
-                  <span className={`px-2 py-1 text-xs font-body font-medium rounded-full ${
-                    product.tag === 'Sale' ? 'bg-red-100 text-red-800' :
-                    product.tag === 'New' ? 'bg-green-100 text-green-800' :
-                    product.tag === 'Trending' ? 'bg-boutique-accent/20 text-boutique-accent' :
-                    'bg-blue-100 text-blue-800'
-                  }`}>
-                    {product.tag}
+                  <span className="px-2 py-1 text-xs font-body font-medium rounded-full bg-boutique-accent/20 text-boutique-accent">
+                    Featured
                   </span>
                 </div>
 
@@ -91,11 +90,6 @@ const FeaturedProducts = () => {
                     <span className="text-lg font-heading font-semibold text-boutique-charcoal">
                       ${product.price}
                     </span>
-                    {product.originalPrice && (
-                      <span className="text-sm text-boutique-grey line-through">
-                        ${product.originalPrice}
-                      </span>
-                    )}
                   </div>
                 </div>
               </CardContent>

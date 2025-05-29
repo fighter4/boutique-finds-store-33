@@ -3,11 +3,13 @@ import React, { useState } from 'react';
 import { ShoppingBag, Search, User, Menu, X, Heart, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { useCart } from '@/contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { totalItems } = useCart();
   const navigate = useNavigate();
 
   const navItems = [
@@ -81,11 +83,18 @@ const Header = () => {
               {user ? <LogOut className="h-5 w-5" /> : <User className="h-5 w-5" />}
             </Button>
             {user && (
-              <Button variant="ghost" size="sm" className="text-boutique-charcoal hover:text-boutique-accent relative">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-boutique-charcoal hover:text-boutique-accent relative"
+                onClick={() => navigate('/cart')}
+              >
                 <ShoppingBag className="h-5 w-5" />
-                <span className="absolute -top-2 -right-2 bg-boutique-accent text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  0
-                </span>
+                {totalItems > 0 && (
+                  <span className="absolute -top-2 -right-2 bg-boutique-accent text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {totalItems}
+                  </span>
+                )}
               </Button>
             )}
           </div>

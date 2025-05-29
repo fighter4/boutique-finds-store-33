@@ -4,9 +4,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Heart, ShoppingBag } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
+import { useCart } from '@/contexts/CartContext';
+import { useNavigate } from 'react-router-dom';
 
 const FeaturedProducts = () => {
   const { featuredProducts, loading, error } = useProducts();
+  const { addToCart } = useCart();
+  const navigate = useNavigate();
 
   if (loading) {
     return (
@@ -41,6 +45,14 @@ const FeaturedProducts = () => {
     );
   }
 
+  const handleAddToCart = async (productId: string) => {
+    // Find the first available variant for the product
+    const product = featuredProducts.find(p => p.id === productId);
+    if (product && product.product_variants.length > 0) {
+      await addToCart(product.product_variants[0].id);
+    }
+  };
+
   return (
     <section className="py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -60,7 +72,8 @@ const FeaturedProducts = () => {
                 <img
                   src={product.product_variants?.[0]?.image_urls?.[0] || "https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80"}
                   alt={product.name}
-                  className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-300"
+                  className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
+                  onClick={() => navigate(`/product/${product.id}`)}
                 />
                 
                 {/* Product Tag */}
@@ -75,14 +88,24 @@ const FeaturedProducts = () => {
                   <Button size="sm" variant="secondary" className="rounded-full w-10 h-10 p-0">
                     <Heart className="h-4 w-4" />
                   </Button>
-                  <Button size="sm" className="rounded-full w-10 h-10 p-0 bg-boutique-accent hover:bg-boutique-accent/90">
+                  <Button 
+                    size="sm" 
+                    className="rounded-full w-10 h-10 p-0 bg-boutique-accent hover:bg-boutique-accent/90"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleAddToCart(product.id);
+                    }}
+                  >
                     <ShoppingBag className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
 
               <CardContent className="p-4">
-                <h3 className="font-body font-medium text-boutique-charcoal mb-2 hover:text-boutique-accent transition-colors cursor-pointer">
+                <h3 
+                  className="font-body font-medium text-boutique-charcoal mb-2 hover:text-boutique-accent transition-colors cursor-pointer"
+                  onClick={() => navigate(`/product/${product.id}`)}
+                >
                   {product.name}
                 </h3>
                 <div className="flex items-center justify-between">

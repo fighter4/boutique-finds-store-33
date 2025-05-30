@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { Resend } from 'npm:resend@2.0.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,15 +14,16 @@ serve(async (req) => {
   }
 
   try {
-    const { orderId, customerEmail } = await req.json()
+    const { orderId, customerEmail, customerName } = await req.json()
 
-    // Initialize Supabase client
+    // Initialize services
+    const resend = new Resend(Deno.env.get('RESEND_API_KEY'))
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Fetch order details
+    // Fetch order details with items
     const { data: order, error: orderError } = await supabaseClient
       .from('orders')
       .select(`
@@ -37,19 +39,95 @@ serve(async (req) => {
       .eq('id', orderId)
       .single()
 
-    if (orderError) {
-      throw orderError
+    if (orderError || !order) {
+      throw new Error('Order not found')
     }
 
-    // Here you would typically send an email using a service like Resend or SendGrid
-    // For now, we'll just log the order confirmation
-    console.log('Order confirmation for:', customerEmail)
-    console.log('Order details:', order)
+    // Generate order items HTML
+    const orderItemsHtml = order.order_items.map(item => `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #eee;">
+          ${item.product_variants.products.name}
+          ${item.product_variants.size ? ` - Size: ${item.product_variants.size}` : ''}
+          ${item.product_variants.color ? ` - Color: ${item.product_variants.color}` : ''}
+        </td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: center;">
+          ${item.quantity}
+        </td>
+        <td style="padding: 10px; border-bottom: 1px solid #eee; text-align: right;">
+          $${(item.price_at_purchase * item.quantity).toFixed(2)}
+        </td>
+      </tr>
+    `).join('')
+
+    const shippingAddress = order.shipping_address as any
+
+    // Send confirmation email
+    const { error: emailError } = await resend.emails.send({
+      from: 'Your Store <noreply@yourdomain.com>',
+      to: [customerEmail],
+      subject: `Order Confirmation #${orderId.slice(0, 8)}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #333; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;">
+            Order Confirmation
+          </h1>
+          
+          <p>Dear ${customerName},</p>
+          
+          <p>Thank you for your order! We've received your order and it's being processed.</p>
+          
+          <div style="background: #f9f9f9; padding: 20px; margin: 20px 0; border-radius: 5px;">
+            <h3 style="margin-top: 0;">Order Details</h3>
+            <p><strong>Order ID:</strong> #${orderId.slice(0, 8)}</p>
+            <p><strong>Order Date:</strong> ${new Date(order.created_at).toLocaleDateString()}</p>
+            <p><strong>Total Amount:</strong> $${order.total_amount.toFixed(2)}</p>
+          </div>
+
+          <h3>Items Ordered</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <thead>
+              <tr style="background: #f0f0f0;">
+                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #ddd;">Item</th>
+                <th style="padding: 10px; text-align: center; border-bottom: 2px solid #ddd;">Qty</th>
+                <th style="padding: 10px; text-align: right; border-bottom: 2px solid #ddd;">Price</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${orderItemsHtml}
+            </tbody>
+          </table>
+
+          <div style="background: #f9f9f9; padding: 20px; margin: 20px 0; border-radius: 5px;">
+            <h3 style="margin-top: 0;">Shipping Address</h3>
+            <p>
+              ${shippingAddress.firstName} ${shippingAddress.lastName}<br>
+              ${shippingAddress.address}<br>
+              ${shippingAddress.city}, ${shippingAddress.state} ${shippingAddress.zipCode}<br>
+              ${shippingAddress.country}
+            </p>
+          </div>
+
+          <p>We'll send you another email when your order ships.</p>
+          
+          <p>Thank you for shopping with us!</p>
+          
+          <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+          <p style="color: #666; font-size: 12px;">
+            If you have any questions, please contact our customer service team.
+          </p>
+        </div>
+      `,
+    })
+
+    if (emailError) {
+      throw emailError
+    }
 
     return new Response(
       JSON.stringify({ 
-        message: 'Order confirmation processed',
-        orderId: orderId 
+        success: true,
+        message: 'Order confirmation email sent successfully' 
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -57,6 +135,7 @@ serve(async (req) => {
       }
     )
   } catch (error) {
+    console.error('Email sending error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       {

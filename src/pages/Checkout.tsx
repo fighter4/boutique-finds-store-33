@@ -8,6 +8,7 @@ import Footer from '@/components/Footer';
 import CheckoutSteps from '@/components/checkout/CheckoutSteps';
 import ShippingForm from '@/components/checkout/ShippingForm';
 import OrderSummary from '@/components/checkout/OrderSummary';
+import PaymentForm from '@/components/checkout/PaymentForm';
 import OrderConfirmation from '@/components/checkout/OrderConfirmation';
 
 export interface ShippingAddress {
@@ -60,9 +61,9 @@ const Checkout = () => {
     setCurrentStep(prev => prev - 1);
   };
 
-  const handleOrderComplete = (newOrderId: string) => {
+  const handlePaymentSuccess = (newOrderId: string) => {
     setOrderId(newOrderId);
-    setCurrentStep(3);
+    setCurrentStep(4);
   };
 
   if (!user || items.length === 0) {
@@ -88,15 +89,22 @@ const Checkout = () => {
               <OrderSummary
                 shippingAddress={shippingAddress}
                 onPrev={handlePrevStep}
-                onOrderComplete={handleOrderComplete}
+                onNext={handleNextStep}
               />
             )}
-            {currentStep === 3 && orderId && (
+            {currentStep === 3 && (
+              <PaymentForm
+                shippingAddress={shippingAddress}
+                onPaymentSuccess={handlePaymentSuccess}
+                onBack={handlePrevStep}
+              />
+            )}
+            {currentStep === 4 && orderId && (
               <OrderConfirmation orderId={orderId} />
             )}
           </div>
           
-          {currentStep < 3 && (
+          {currentStep < 4 && (
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
                 <h3 className="text-lg font-heading font-semibold text-boutique-charcoal mb-4">

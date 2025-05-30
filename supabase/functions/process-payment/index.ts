@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import Stripe from 'https://esm.sh/stripe@14.21.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,7 +14,12 @@ serve(async (req) => {
   }
 
   try {
-    const { amount, currency = 'USD', orderId } = await req.json()
+    const { amount, currency = 'usd', orderId, customerEmail, customerName } = await req.json()
+
+    // Initialize Stripe
+    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
+      apiVersion: '2023-10-16',
+    })
 
     // Initialize Supabase client
     const supabaseClient = createClient(
@@ -21,36 +27,58 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Here you would integrate with Stripe, PayPal, or another payment processor
-    // For MVP, we'll simulate a successful payment
-    const paymentSuccessful = true
+    // Check if customer exists, create if not
+    let customer
+    const existingCustomers = await stripe.customers.list({
+      email: customerEmail,
+      limit: 1
+    })
 
-    if (paymentSuccessful) {
-      // Update order status to processing
-      const { error: updateError } = await supabaseClient
-        .from('orders')
-        .update({ status: 'processing' })
-        .eq('id', orderId)
-
-      if (updateError) {
-        throw updateError
-      }
-
-      return new Response(
-        JSON.stringify({ 
-          success: true,
-          message: 'Payment processed successfully',
-          orderId: orderId 
-        }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        }
-      )
+    if (existingCustomers.data.length > 0) {
+      customer = existingCustomers.data[0]
     } else {
-      throw new Error('Payment failed')
+      customer = await stripe.customers.create({
+        email: customerEmail,
+        name: customerName,
+      })
     }
+
+    // Create payment intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Convert to cents
+      currency,
+      customer: customer.id,
+      metadata: {
+        orderId: orderId,
+      },
+    })
+
+    // Update order with payment intent ID
+    const { error: updateError } = await supabaseClient
+      .from('orders')
+      .update({ 
+        payment_intent_id: paymentIntent.id,
+        status: 'processing' 
+      })
+      .eq('id', orderId)
+
+    if (updateError) {
+      console.error('Error updating order:', updateError)
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true,
+        clientSecret: paymentIntent.client_secret,
+        paymentIntentId: paymentIntent.id
+      }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      }
+    )
   } catch (error) {
+    console.error('Payment processing error:', error)
     return new Response(
       JSON.stringify({ error: error.message }),
       {

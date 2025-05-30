@@ -10,7 +10,8 @@ const CheckoutSteps: React.FC<CheckoutStepsProps> = ({ currentStep }) => {
   const steps = [
     { id: 1, name: 'Shipping', description: 'Enter your shipping address' },
     { id: 2, name: 'Review', description: 'Review your order details' },
-    { id: 3, name: 'Complete', description: 'Order confirmation' },
+    { id: 3, name: 'Payment', description: 'Enter payment information' },
+    { id: 4, name: 'Complete', description: 'Order confirmation' },
   ];
 
   return (

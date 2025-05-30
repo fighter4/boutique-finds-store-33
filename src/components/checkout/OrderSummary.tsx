@@ -1,85 +1,24 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, CreditCard } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
 import { ShippingAddress } from '@/pages/Checkout';
 
 interface OrderSummaryProps {
   shippingAddress: ShippingAddress;
   onPrev: () => void;
-  onOrderComplete: (orderId: string) => void;
+  onNext: () => void;
 }
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({
   shippingAddress,
   onPrev,
-  onOrderComplete,
+  onNext,
 }) => {
-  const { items, totalPrice, clearCart } = useCart();
-  const { user } = useAuth();
-  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-
-  const handlePlaceOrder = async () => {
-    if (!user) return;
-
-    try {
-      setIsPlacingOrder(true);
-
-      // Create order - cast shippingAddress to Json type
-      const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .insert({
-          user_id: user.id,
-          total_amount: totalPrice,
-          shipping_address: shippingAddress as any,
-          status: 'pending',
-        })
-        .select()
-        .single();
-
-      if (orderError) throw orderError;
-
-      // Create order items
-      const orderItems = items.map(item => ({
-        order_id: order.id,
-        variant_id: item.variant_id,
-        quantity: item.quantity,
-        price_at_purchase: item.product.price,
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems);
-
-      if (itemsError) throw itemsError;
-
-      // Clear cart
-      await clearCart();
-
-      // Show success message
-      toast({
-        title: 'Order placed successfully!',
-        description: `Your order #${order.id.slice(0, 8)} has been placed.`,
-      });
-
-      onOrderComplete(order.id);
-    } catch (error) {
-      console.error('Error placing order:', error);
-      toast({
-        title: 'Error placing order',
-        description: 'Please try again or contact support.',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsPlacingOrder(false);
-    }
-  };
+  const { items, totalPrice } = useCart();
 
   return (
     <div className="space-y-6">
@@ -178,18 +117,11 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
             Back to Shipping
           </Button>
           <Button
-            onClick={handlePlaceOrder}
-            disabled={isPlacingOrder}
+            onClick={onNext}
             className="bg-boutique-accent hover:bg-boutique-accent/90 px-8"
           >
-            {isPlacingOrder ? (
-              'Placing Order...'
-            ) : (
-              <>
-                <CreditCard className="h-4 w-4 mr-2" />
-                Place Order
-              </>
-            )}
+            <CreditCard className="h-4 w-4 mr-2" />
+            Continue to Payment
           </Button>
         </div>
       </div>

@@ -41,8 +41,24 @@ const ProductDetail = () => {
         if (error) throw error;
 
         setProduct(data);
+        
+        // If product has variants, select the first one
         if (data.product_variants && data.product_variants.length > 0) {
           setSelectedVariant(data.product_variants[0]);
+        }
+        // If no variants exist, create a default variant for the product
+        else {
+          // Create a default variant object for products without variants
+          const defaultVariant: Tables<'product_variants'> = {
+            id: `default-${data.id}`,
+            product_id: data.id,
+            size: null,
+            color: null,
+            image_urls: null,
+            stock_quantity: 999, // Assume available stock for products without variants
+            created_at: data.created_at,
+          };
+          setSelectedVariant(defaultVariant);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load product');
@@ -56,7 +72,16 @@ const ProductDetail = () => {
   }, [id]);
 
   const handleAddToCart = async () => {
-    if (!selectedVariant) return;
+    if (!selectedVariant || !product) return;
+    
+    // For products without real variants, we need to handle this differently
+    if (selectedVariant.id.startsWith('default-')) {
+      console.log('Product has no variants, would need to create cart logic for products without variants');
+      // For now, show a message that variants need to be set up
+      alert('This product needs variants to be set up in the database before it can be added to cart.');
+      return;
+    }
+    
     await addToCart(selectedVariant.id, 1);
   };
 
@@ -111,6 +136,10 @@ const ProductDetail = () => {
       </div>
     );
   }
+
+  // Check if product has variants or if we're using a default variant
+  const hasRealVariants = product.product_variants && product.product_variants.length > 0;
+  const isInStock = selectedVariant && (selectedVariant.stock_quantity || 0) > 0;
 
   return (
     <div className="min-h-screen bg-white">
@@ -181,8 +210,8 @@ const ProductDetail = () => {
               </div>
             )}
 
-            {/* Size Selection */}
-            {availableSizes.length > 0 && (
+            {/* Size Selection - only show if there are real variants with sizes */}
+            {hasRealVariants && availableSizes.length > 0 && (
               <div>
                 <h3 className="font-body font-semibold text-boutique-charcoal mb-3">Size</h3>
                 <div className="flex flex-wrap gap-2">
@@ -204,8 +233,8 @@ const ProductDetail = () => {
               </div>
             )}
 
-            {/* Color Selection */}
-            {availableColors.length > 0 && (
+            {/* Color Selection - only show if there are real variants with colors */}
+            {hasRealVariants && availableColors.length > 0 && (
               <div>
                 <h3 className="font-body font-semibold text-boutique-charcoal mb-3">Color</h3>
                 <div className="flex flex-wrap gap-2">
@@ -227,23 +256,31 @@ const ProductDetail = () => {
             )}
 
             {/* Stock Status */}
-            {selectedVariant && (
-              <div>
-                {selectedVariant.stock_quantity && selectedVariant.stock_quantity > 0 ? (
+            <div>
+              {hasRealVariants ? (
+                selectedVariant && isInStock ? (
                   <p className="text-green-600 font-body">
                     In stock ({selectedVariant.stock_quantity} available)
                   </p>
                 ) : (
                   <p className="text-red-600 font-body">Out of stock</p>
-                )}
-              </div>
-            )}
+                )
+              ) : (
+                <p className="text-green-600 font-body">Available</p>
+              )}
+              
+              {!hasRealVariants && (
+                <p className="text-amber-600 font-body text-sm mt-1">
+                  Note: This product needs variants to be set up for full cart functionality
+                </p>
+              )}
+            </div>
 
             {/* Actions */}
             <div className="flex gap-4">
               <Button
                 onClick={handleAddToCart}
-                disabled={!selectedVariant || (selectedVariant.stock_quantity || 0) <= 0}
+                disabled={hasRealVariants && (!selectedVariant || !isInStock)}
                 className="flex-1 bg-boutique-accent hover:bg-boutique-accent/90"
                 size="lg"
               >

@@ -2,23 +2,20 @@
 import React, { useState } from 'react';
 import { ShoppingBag, Search, User, Menu, X, Heart, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
+import { useCategories } from '@/hooks/useCategories';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const { user, signOut } = useAuth();
   const { totalItems } = useCart();
   const navigate = useNavigate();
-
-  const navItems = [
-    { name: 'New Arrivals', href: '#' },
-    { name: 'Women', href: '#' },
-    { name: 'Men', href: '#' },
-    { name: 'Accessories', href: '#' },
-    { name: 'Sale', href: '#' },
-  ];
+  const { categories } = useCategories();
 
   const handleAuthClick = () => {
     if (user) {
@@ -26,6 +23,20 @@ const Header = () => {
     } else {
       navigate('/auth');
     }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      setShowSearch(false);
+      setSearchQuery('');
+    }
+  };
+
+  const handleCategoryClick = (categorySlug: string) => {
+    navigate(`/category/${categorySlug}`);
+    setIsMenuOpen(false);
   };
 
   return (
@@ -53,22 +64,57 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-8">
-            {navItems.map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
+            <button
+              onClick={() => navigate('/products')}
+              className="text-boutique-charcoal hover:text-boutique-accent transition-colors duration-200 font-body font-medium"
+            >
+              All Products
+            </button>
+            {categories.slice(0, 4).map((category) => (
+              <button
+                key={category.id}
+                onClick={() => handleCategoryClick(category.slug)}
                 className="text-boutique-charcoal hover:text-boutique-accent transition-colors duration-200 font-body font-medium"
               >
-                {item.name}
-              </a>
+                {category.name}
+              </button>
             ))}
           </nav>
 
-          {/* Icons */}
+          {/* Search and Icons */}
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" size="sm" className="text-boutique-charcoal hover:text-boutique-accent">
-              <Search className="h-5 w-5" />
-            </Button>
+            {showSearch ? (
+              <form onSubmit={handleSearch} className="flex items-center">
+                <Input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-48"
+                  autoFocus
+                />
+                <Button type="submit" variant="ghost" size="sm">
+                  <Search className="h-5 w-5" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setShowSearch(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </form>
+            ) : (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-boutique-charcoal hover:text-boutique-accent"
+                onClick={() => setShowSearch(true)}
+              >
+                <Search className="h-5 w-5" />
+              </Button>
+            )}
+            
             {user && (
               <Button variant="ghost" size="sm" className="text-boutique-charcoal hover:text-boutique-accent">
                 <Heart className="h-5 w-5" />
@@ -104,15 +150,23 @@ const Header = () => {
         {isMenuOpen && (
           <div className="md:hidden border-t border-gray-200">
             <div className="py-2 space-y-1">
-              {navItems.map((item) => (
-                <a
-                  key={item.name}
-                  href={item.href}
-                  className="block px-3 py-2 text-boutique-charcoal hover:text-boutique-accent transition-colors duration-200 font-body"
-                  onClick={() => setIsMenuOpen(false)}
+              <button
+                onClick={() => {
+                  navigate('/products');
+                  setIsMenuOpen(false);
+                }}
+                className="block w-full text-left px-3 py-2 text-boutique-charcoal hover:text-boutique-accent transition-colors duration-200 font-body"
+              >
+                All Products
+              </button>
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => handleCategoryClick(category.slug)}
+                  className="block w-full text-left px-3 py-2 text-boutique-charcoal hover:text-boutique-accent transition-colors duration-200 font-body"
                 >
-                  {item.name}
-                </a>
+                  {category.name}
+                </button>
               ))}
               {!user && (
                 <button

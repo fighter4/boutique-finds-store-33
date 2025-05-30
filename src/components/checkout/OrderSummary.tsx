@@ -31,13 +31,13 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
     try {
       setIsPlacingOrder(true);
 
-      // Create order
+      // Create order - cast shippingAddress to Json type
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           user_id: user.id,
           total_amount: totalPrice,
-          shipping_address: shippingAddress,
+          shipping_address: shippingAddress as any,
           status: 'pending',
         })
         .select()

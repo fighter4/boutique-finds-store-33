@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -46,20 +47,6 @@ const ProductDetail = () => {
         if (data.product_variants && data.product_variants.length > 0) {
           setSelectedVariant(data.product_variants[0]);
         }
-        // If no variants exist, create a default variant for the product
-        else {
-          // Create a default variant object for products without variants
-          const defaultVariant: Tables<'product_variants'> = {
-            id: `default-${data.id}`,
-            product_id: data.id,
-            size: null,
-            color: null,
-            image_urls: null,
-            stock_quantity: 999, // Assume available stock for products without variants
-            created_at: data.created_at,
-          };
-          setSelectedVariant(defaultVariant);
-        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load product');
         console.error('Error fetching product:', err);
@@ -73,15 +60,6 @@ const ProductDetail = () => {
 
   const handleAddToCart = async () => {
     if (!selectedVariant || !product) return;
-    
-    // For products without real variants, we need to handle this differently
-    if (selectedVariant.id.startsWith('default-')) {
-      console.log('Product has no variants, would need to create cart logic for products without variants');
-      // For now, show a message that variants need to be set up
-      alert('This product needs variants to be set up in the database before it can be added to cart.');
-      return;
-    }
-    
     await addToCart(selectedVariant.id, 1);
   };
 
@@ -137,8 +115,7 @@ const ProductDetail = () => {
     );
   }
 
-  // Check if product has variants or if we're using a default variant
-  const hasRealVariants = product.product_variants && product.product_variants.length > 0;
+  const hasVariants = product.product_variants && product.product_variants.length > 0;
   const isInStock = selectedVariant && (selectedVariant.stock_quantity || 0) > 0;
 
   return (
@@ -210,8 +187,8 @@ const ProductDetail = () => {
               </div>
             )}
 
-            {/* Size Selection - only show if there are real variants with sizes */}
-            {hasRealVariants && availableSizes.length > 0 && (
+            {/* Size Selection */}
+            {hasVariants && availableSizes.length > 0 && (
               <div>
                 <h3 className="font-body font-semibold text-boutique-charcoal mb-3">Size</h3>
                 <div className="flex flex-wrap gap-2">
@@ -221,7 +198,10 @@ const ProductDetail = () => {
                       variant={selectedVariant?.size === size ? "default" : "outline"}
                       size="sm"
                       onClick={() => {
-                        const variant = product.product_variants.find(v => v.size === size);
+                        const variant = product.product_variants.find(v => 
+                          v.size === size && 
+                          (!selectedVariant?.color || v.color === selectedVariant.color)
+                        );
                         if (variant) setSelectedVariant(variant);
                       }}
                       className="min-w-[3rem]"
@@ -233,8 +213,8 @@ const ProductDetail = () => {
               </div>
             )}
 
-            {/* Color Selection - only show if there are real variants with colors */}
-            {hasRealVariants && availableColors.length > 0 && (
+            {/* Color Selection */}
+            {hasVariants && availableColors.length > 0 && (
               <div>
                 <h3 className="font-body font-semibold text-boutique-charcoal mb-3">Color</h3>
                 <div className="flex flex-wrap gap-2">
@@ -244,7 +224,10 @@ const ProductDetail = () => {
                       variant={selectedVariant?.color === color ? "default" : "outline"}
                       size="sm"
                       onClick={() => {
-                        const variant = product.product_variants.find(v => v.color === color);
+                        const variant = product.product_variants.find(v => 
+                          v.color === color && 
+                          (!selectedVariant?.size || v.size === selectedVariant.size)
+                        );
                         if (variant) setSelectedVariant(variant);
                       }}
                     >
@@ -257,22 +240,18 @@ const ProductDetail = () => {
 
             {/* Stock Status */}
             <div>
-              {hasRealVariants ? (
-                selectedVariant && isInStock ? (
+              {hasVariants && selectedVariant ? (
+                isInStock ? (
                   <p className="text-green-600 font-body">
                     In stock ({selectedVariant.stock_quantity} available)
                   </p>
                 ) : (
                   <p className="text-red-600 font-body">Out of stock</p>
                 )
+              ) : hasVariants ? (
+                <p className="text-boutique-grey font-body">Select options to see availability</p>
               ) : (
-                <p className="text-green-600 font-body">Available</p>
-              )}
-              
-              {!hasRealVariants && (
-                <p className="text-amber-600 font-body text-sm mt-1">
-                  Note: This product needs variants to be set up for full cart functionality
-                </p>
+                <p className="text-boutique-grey font-body">Product information unavailable</p>
               )}
             </div>
 
@@ -280,7 +259,7 @@ const ProductDetail = () => {
             <div className="flex gap-4">
               <Button
                 onClick={handleAddToCart}
-                disabled={hasRealVariants && (!selectedVariant || !isInStock)}
+                disabled={!selectedVariant || !isInStock}
                 className="flex-1 bg-boutique-accent hover:bg-boutique-accent/90"
                 size="lg"
               >

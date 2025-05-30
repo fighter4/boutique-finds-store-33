@@ -65,13 +65,13 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         .from('cart_items')
         .select(`
           *,
-          product_variants!inner(
+          product_variants!fk_cart_items_variant(
             id,
             size,
             color,
             image_urls,
             stock_quantity,
-            products!inner(
+            products!fk_product_variants_product(
               id,
               name,
               price

@@ -21,8 +21,8 @@ export const useProducts = () => {
         .from('products')
         .select(`
           *,
-          categories(*),
-          product_variants(*)
+          categories!fk_products_category(*),
+          product_variants!fk_product_variants_product(*)
         `)
         .eq('active', true)
         .order('created_at', { ascending: false });

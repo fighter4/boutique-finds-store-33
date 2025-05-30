@@ -58,13 +58,13 @@ const OrderHistory = () => {
         .from('orders')
         .select(`
           *,
-          order_items(
+          order_items!fk_order_items_order(
             *,
-            product_variants(
+            product_variants!fk_order_items_variant(
               size,
               color,
               image_urls,
-              products(name)
+              products!fk_product_variants_product(name)
             )
           )
         `)

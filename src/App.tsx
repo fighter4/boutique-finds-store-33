@@ -10,8 +10,11 @@ import { CartProvider } from "@/contexts/CartContext";
 import { testConnection } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Products from "./pages/Products";
+import Category from "./pages/Category";
 import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { AuthError, Session, User } from '@supabase/supabase-js';
-import { useToast } from '../components/ui/use-toast'; // Or your own useToast hook path
+import { useToast } from './use-toast'; // Corrected import path
 
 // Define a type for the auth context value
 interface AuthContextType {
@@ -21,7 +21,7 @@ export const useAuth = (): AuthContextType => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true); // Start true to handle initial session check
   const [error, setError] = useState<AuthError | null>(null);
-  const { toast } = useToast();
+  const { toast } = useToast(); // This should now correctly get the toast function
 
   useEffect(() => {
     setLoading(true);
@@ -53,7 +53,7 @@ export const useAuth = (): AuthContextType => {
     return () => {
       authListener.subscription.unsubscribe();
     };
-  }, [toast]);
+  }, [toast]); // toast is a dependency
 
   const signInWithPassword = useCallback(async (email?: string, password?: string) => {
     if (!email || !password) {
@@ -81,14 +81,14 @@ export const useAuth = (): AuthContextType => {
       // Session and user state will be updated by onAuthStateChange listener
     } catch (catchedError: any) {
       // Ensure error is always set if catch block is reached
-      if (!error) { // if setError was not called by supabase error
+      if (!error && !(catchedError instanceof AuthError && catchedError.message === "Email and password are required.")) { // Avoid double setting if already set
           setError(catchedError as AuthError);
       }
       throw catchedError; // Re-throw to be caught in AuthForm
     } finally {
       setLoading(false);
     }
-  }, [toast, error]); // Added error to dependency array
+  }, [toast, error]);
 
   const signUp = useCallback(async (email?: string, password?: string) => {
     if (!email || !password) {
@@ -103,9 +103,8 @@ export const useAuth = (): AuthContextType => {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        // Options for email redirect can be added here if needed
         // options: {
-        //   emailRedirectTo: `${window.location.origin}/welcome`
+        //   emailRedirectTo: `${window.location.origin}/welcome` // Example redirect
         // }
       });
 
@@ -117,29 +116,23 @@ export const useAuth = (): AuthContextType => {
       }
       
       if (data.user && data.user.identities && data.user.identities.length === 0) {
-        // This case might indicate an issue like user already exists but is unconfirmed.
-        // Supabase v2 might return user even if already registered.
-        // For older Supabase, if data.user is null and signUpError is null, it might mean user exists.
         const message = "User already registered. If you haven't confirmed your email, please check your inbox.";
         toast({ title: "Signup Info", description: message });
-        // Don't throw an error here, let the user know.
       } else if (data.session) {
-        // User is signed in immediately (e.g., if auto-confirm is on or for some providers)
         toast({ title: "Signup Successful", description: "Welcome!" });
       } else if (data.user) {
-        // User created, email confirmation likely needed
         toast({ title: "Signup Successful", description: "Please check your email to verify your account." });
       }
       // User and session state will be updated by onAuthStateChange
     } catch (catchedError: any) {
-       if (!error) {
+       if (!error && !(catchedError instanceof AuthError && catchedError.message === "Email and password are required for signup.")) {
           setError(catchedError as AuthError);
       }
       throw catchedError;
     } finally {
       setLoading(false);
     }
-  }, [toast, error]); // Added error to dependency array
+  }, [toast, error]);
 
   const signOut = useCallback(async () => {
     setLoading(true);
@@ -152,7 +145,6 @@ export const useAuth = (): AuthContextType => {
     } else {
       toast({ title: "Signed Out", description: "You have been successfully signed out." });
     }
-    // User and session will be set to null by onAuthStateChange
     setLoading(false);
   }, [toast]);
 
@@ -166,4 +158,5 @@ export const useAuth = (): AuthContextType => {
     signOut,
   };
 };
+
 

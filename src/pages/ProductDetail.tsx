@@ -11,18 +11,6 @@ import { useCart } from '@/contexts/CartContext';
 import { Product } from '@/hooks/useProducts';
 import { Tables } from '@/integrations/supabase/types';
 
-interface ProductVariant {
-  id: string;
-  size: string | null;
-  color: string | null;
-  stock_quantity: number | null;
-  image_urls: string[] | null;
-}
-
-interface ProductWithVariants extends Product {
-  product_variants: ProductVariant[];
-}
-
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();

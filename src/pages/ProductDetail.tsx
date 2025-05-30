@@ -31,8 +31,8 @@ const ProductDetail = () => {
           .from('products')
           .select(`
             *,
-            categories(*),
-            product_variants(*)
+            categories!fk_products_category(*),
+            product_variants!fk_product_variants_product(*)
           `)
           .eq('id', id)
           .eq('active', true)

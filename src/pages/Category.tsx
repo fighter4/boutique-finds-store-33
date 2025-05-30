@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,8 +40,8 @@ const Category = () => {
           .from('products')
           .select(`
             *,
-            categories(*),
-            product_variants(*)
+            categories!fk_products_category(*),
+            product_variants!fk_product_variants_product(*)
           `)
           .eq('category_id', categoryData.id)
           .eq('active', true)
